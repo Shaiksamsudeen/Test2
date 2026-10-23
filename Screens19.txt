@@ -8632,7 +8632,7 @@ Screens:
 
                                                               Set(
                                                                   varScopeArea,
-                                                                  Text(ThisItem.'Scope Area')
+                                                                  Text(ThisItem.'Scope Area Text')
                                                               );
 
                                                               Set(
@@ -8829,47 +8829,27 @@ Screens:
                                                                       EntityType = "Risk"
                                                                   )
                                                               );
-
-                                                              /* ADD NEW */
-                                                              Collect(
-                                                                  colAddNewLogCard,
-                                                                  {
-                                                                      QuestionTitle:
-                                                                          "Risk ID: " & Text(ThisItem.RiskNo),
-
-                                                                      SectionLabel:
-                                                                          "Add New",
-
-                                                                      DetailsText:
-                                                                          "",
-
-                                                                      ActionByDisplay:
-                                                                  Coalesce(
-                                                                      LookUp(
-                                                                          colRiskLogs,
-                                                                          Field = "Added By",
-                                                                          DisplayDetails
-                                                                      ),
-                                                                      "System"
-                                                                  ),
-
-                                                              ActionDateDisplay:
-                                                                  Coalesce(
-                                                                      LookUp(
-                                                                          colRiskLogs,
-                                                                          Field = "Created On",
-                                                                          DisplayDetails
-                                                                      ),
-                                                                      Text(
-                                                                          ThisItem.'Created On',
-                                                                          "[$-en-US]mmmm d, yyyy ""at"" h:mm:ss AM/PM"
-                                                                      )
-                                                                  ),
-                                                                      SortDate:
-                                                                          ThisItem.'Created On'
-                                                                  }
+                                                              // Add new
+                                                              With(
+                                                                  {_rec: LookUp(CPR_tb_Risk_Analyses, CPR_tb_Risk_Analysis = ThisItem.CPR_tb_Risk_Analysis)},
+                                                                  Collect(
+                                                                      colAddNewLogCard,
+                                                                      {
+                                                                          QuestionTitle: "Risk ID: " & Text(ThisItem.RiskNo),
+                                                                          SectionLabel: "Add New",
+                                                                          DetailsText: "",
+                                                                          ActionByDisplay:
+                                                                              If(
+                                                                                  IsBlank(_rec.'Created By'.'Full Name'),
+                                                                                  "System",
+                                                                                  _rec.'Created By'.'Full Name' & " | " & _rec.'Created By'.'Primary Email'
+                                                                              ),
+                                                                          ActionDateDisplay:
+                                                                              Text(_rec.'Created On', "[$-en-US]mmmm d, yyyy ""at"" h:mm:ss AM/PM"),
+                                                                          SortDate: _rec.'Created On'
+                                                                      }
+                                                                  )
                                                               );
-
                                                               /* EDITS */
                                                               ForAll(
                                                                   Distinct(
@@ -9662,7 +9642,7 @@ Screens:
                                                                         HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
                                                                         HoverColor: =RGBA(0, 0, 0, 1)
                                                                         HoverFill: =RGBA(255, 255, 255, 1)
-                                                                        OnSelect: "=Set(\n    varChangeLogRiskID,\n    ThisItem.RiskNo\n);\n\nSet(\n    varselectedguid,\n    ThisItem.CPR_tb_Risk_Analysis\n);\n\nSet(\n    varSelectedRisk,\n    ThisItem\n);\n\nSet(\n    varChangeLogRiskID,\n    ThisItem.RiskNo\n);\n\nSet(\n    varselectedguid,\n    ThisItem.CPR_tb_Risk_Analysis\n);\n\nRefresh(CPR_RiskAnalysis_ChangeLogs);\n\nClear(colAddNewLogCard);\n\nClearCollect(\n    colRiskLogs,\n    Filter(\n        CPR_RiskAnalysis_ChangeLogs,\n        Ref_ID = Text(varselectedguid) \n        &&\n        FormType = \"Risk Analysis\" &&\n        EntityType = \"Risk\"\n    \n    )\n);\n\n/* ADD NEW */\nCollect(\n    colAddNewLogCard,\n    {\n        QuestionTitle:\n            \"Risk ID: \" & Text(ThisItem.RiskNo),\n\n        SectionLabel:\n            \"Add New\",\n\n        DetailsText:\n            \"\",\n\n        ActionByDisplay:\n            User().FullName  &\n            \" | \" &\n            User().Email,\n\n        ActionDateDisplay:\n            Text(\n                ThisItem.'Created On',\n                \"[$-en-US]mmmm d, yyyy \"\"at\"\" h:mm:ss AM/PM\"\n            ),\n\n        SortDate:\n            ThisItem.'Created On'\n    }\n);\n\n/* EDITS */\nForAll(\n    Distinct(\n        Filter(\n            colRiskLogs,\n            ActionCode = \"EDIT_RISK_Legal\"\n        ),\n        LogGroupID\n    ) As grp,\n\n    Collect(\n        colAddNewLogCard,\n        {\n            QuestionTitle:\n                \"Risk ID: \" & Text(ThisItem.RiskNo),\n\n            SectionLabel:\n                \"Edit\",\n\n            DetailsText:\n                Coalesce(\n                    LookUp(\n                        colRiskLogs,\n                        LogGroupID = grp.Value &&\n                        Field = \"Change Details\",\n                        DisplayDetails\n                    ),\n                    \"\"\n                ),\n\n            ActionByDisplay:\n                Coalesce(\n                    LookUp(\n                        colRiskLogs,\n                        LogGroupID = grp.Value &&\n                        Field = \"Edited By\",\n                        DisplayDetails\n                    ),\n                    \"\"\n                ),\n\n            ActionDateDisplay:\n                Text(\n                    DateTimeValue(\n                        LookUp(\n                            colRiskLogs,\n                            LogGroupID = grp.Value &&\n                            Field = \"Edited By\",\n                            ActionOn\n                        )\n                    ),\n                    \"[$-en-US]mmmm d, yyyy \"\"at\"\" h:mm:ss AM/PM\"\n                ),\n\n            SortDate:\n                DateTimeValue(\n                    LookUp(\n                        colRiskLogs,\n                        LogGroupID = grp.Value &&\n                        Field = \"Edited By\",\n                        ActionOn\n                    )\n                )\n        }\n    )\n);\n\n/* SORT */\nClearCollect(\n    colAddNewLogCard,\n    SortByColumns(\n        colAddNewLogCard,\n        \"SortDate\",\n        SortOrder.Descending\n    )\n);\n\n/* OPEN CHANGE LOG */\nUpdateContext(\n    {\n        locShowChangeLogPopup: true\n    }\n);                             \n\n"
+                                                                        OnSelect: "=Set(\n    varChangeLogRiskID,\n    ThisItem.RiskNo\n);\n\nSet(\n    varselectedguid,\n    ThisItem.CPR_tb_Risk_Analysis\n);\n\nSet(\n    varSelectedRisk,\n    ThisItem\n);\n\nSet(\n    varChangeLogRiskID,\n    ThisItem.RiskNo\n);\n\nSet(\n    varselectedguid,\n    ThisItem.CPR_tb_Risk_Analysis\n);\n\nRefresh(CPR_RiskAnalysis_ChangeLogs);\n\nClear(colAddNewLogCard);\n\nClearCollect(\n    colRiskLogs,\n    Filter(\n        CPR_RiskAnalysis_ChangeLogs,\n        Ref_ID = Text(varselectedguid) \n        &&\n        FormType = \"Risk Analysis\" &&\n        EntityType = \"Risk\"\n    \n    )\n);	   \n// Add new\n With(\n    {_rec: LookUp(CPR_tb_Risk_Analyses, CPR_tb_Risk_Analysis = ThisItem.CPR_tb_Risk_Analysis)},\n    Collect(\n        colAddNewLogCard,\n        {\n            QuestionTitle: \"Risk ID: \" & Text(ThisItem.RiskNo),\n            SectionLabel: \"Add New\",\n            DetailsText: \"\",\n            ActionByDisplay:\n                If(\n                    IsBlank(_rec.'Created By'.'Full Name'),\n                    \"System\",\n                    _rec.'Created By'.'Full Name' & \" | \" & _rec.'Created By'.'Primary Email'\n                ),\n            ActionDateDisplay:\n                Text(_rec.'Created On', \"[$-en-US]mmmm d, yyyy \"\"at\"\" h:mm:ss AM/PM\"),\n            SortDate: _rec.'Created On'\n        }\n    )\n);\n\n/* EDITS */\nForAll(\n    Distinct(\n        Filter(\n            colRiskLogs,\n            ActionCode = \"EDIT_RISK_Legal\"\n        ),\n        LogGroupID\n    ) As grp,\n\n    Collect(\n        colAddNewLogCard,\n        {\n            QuestionTitle:\n                \"Risk ID: \" & Text(ThisItem.RiskNo),\n\n            SectionLabel:\n                \"Edit\",\n\n            DetailsText:\n                Coalesce(\n                    LookUp(\n                        colRiskLogs,\n                        LogGroupID = grp.Value &&\n                        Field = \"Change Details\",\n                        DisplayDetails\n                    ),\n                    \"\"\n                ),\n\n            ActionByDisplay:\n                Coalesce(\n                    LookUp(\n                        colRiskLogs,\n                        LogGroupID = grp.Value &&\n                        Field = \"Edited By\",\n                        DisplayDetails\n                    ),\n                    \"\"\n                ),\n\n            ActionDateDisplay:\n                Text(\n                    DateTimeValue(\n                        LookUp(\n                            colRiskLogs,\n                            LogGroupID = grp.Value &&\n                            Field = \"Edited By\",\n                            ActionOn\n                        )\n                    ),\n                    \"[$-en-US]mmmm d, yyyy \"\"at\"\" h:mm:ss AM/PM\"\n                ),\n\n            SortDate:\n                DateTimeValue(\n                    LookUp(\n                        colRiskLogs,\n                        LogGroupID = grp.Value &&\n                        Field = \"Edited By\",\n                        ActionOn\n                    )\n                )\n        }\n    )\n);\n\n/* SORT */\nClearCollect(\n    colAddNewLogCard,\n    SortByColumns(\n        colAddNewLogCard,\n        \"SortDate\",\n        SortOrder.Descending\n    )\n);\n\n/* OPEN CHANGE LOG */\nUpdateContext(\n    {\n        locShowChangeLogPopup: true\n    }\n);                             \n\n"
                                                                         PaddingBottom: =0
                                                                         PaddingLeft: =0
                                                                         PaddingRight: =0
@@ -14566,26 +14546,31 @@ Screens:
                                                                                                   )
                                                                                               )
                                                                                           )
-                                                                                      );
-                                                                                      Clear(colAddNewLogCard);
-                                                                                      Collect(
-                                                                                          colAddNewLogCard,
-                                                                                          {
-                                                                                              QuestionTitle: "Scope ID: " & Text(varScopeSerial),
-                                                                                              SectionLabel: "Add New",
-                                                                                              TypeOfChangeText: "System or user adds a new scope in AI Scope",
-                                                                                              DetailsText: "",
-                                                                                              ActionByDisplay:
-                                                                                                  Coalesce(
-                                                                                                      LookUp(colScopeChangeLogs, ActionCode = "ADD_SCOPE" && Field = "Added By", DisplayDetails),
-                                                                                                      "System"
-                                                                                                  ),
-                                                                                              ActionDateDisplay:
-                                                                                                  Coalesce(
-                                                                                                      LookUp(colScopeChangeLogs, ActionCode = "ADD_SCOPE" && Field = "Date Added", DisplayDetails),
-                                                                                                      Text(ThisItem.'Created On', "[$-en-US]mmmm d, yyyy ""at"" h:mm:ss AM/PM")
-                                                                                                  )
-                                                                                          }
+                                                                                      );With(
+                                                                                          {_rec: LookUp(' CPR_tb_Scopes', ' CPR_tb_Scope' = ThisItem.' CPR_tb_Scope')},
+                                                                                          Collect(
+                                                                                              colAddNewLogCard,
+                                                                                              {
+                                                                                                  QuestionTitle: "Scope ID: " & Text(varScopeSerial),
+                                                                                                  SectionLabel: "Add New",
+                                                                                                  TypeOfChangeText: "System or user adds a new scope in AI Scope",
+                                                                                                  DetailsText: "",
+                                                                                                  ActionByDisplay:
+                                                                                                      Coalesce(
+                                                                                                          LookUp(colScopeChangeLogs, ActionCode = "ADD_SCOPE" && Field = "Added By", DisplayDetails),
+                                                                                                          If(
+                                                                                                              IsBlank(_rec.'Created By'.'Full Name'),
+                                                                                                              "System",
+                                                                                                              _rec.'Created By'.'Full Name' & " | " & _rec.'Created By'.'Primary Email'
+                                                                                                          )
+                                                                                                      ),
+                                                                                                  ActionDateDisplay:
+                                                                                                      Coalesce(
+                                                                                                          LookUp(colScopeChangeLogs, ActionCode = "ADD_SCOPE" && Field = "Date Added", DisplayDetails),
+                                                                                                          Text(_rec.'Created On', "[$-en-US]mmmm d, yyyy ""at"" h:mm:ss AM/PM")
+                                                                                                      )
+                                                                                              }
+                                                                                          )
                                                                                       );
                                                                                       ForAll(
                                                                                           Distinct(Filter(colScopeChangeLogs, ActionCode = "EDIT_SCOPE"), LogGroupID) As grp,
@@ -15608,26 +15593,31 @@ Screens:
                                                                                                   )
                                                                                               )
                                                                                           )
-                                                                                      );
-                                                                                      Clear(colAddNewLogCard);
-                                                                                      Collect(
-                                                                                          colAddNewLogCard,
-                                                                                          {
-                                                                                              QuestionTitle: "Scope ID: " & Text(varScopeSerial),
-                                                                                              SectionLabel: "Add New",
-                                                                                              TypeOfChangeText: "System or user adds a new scope in AI Scope",
-                                                                                              DetailsText: "",
-                                                                                              ActionByDisplay:
-                                                                                                  Coalesce(
-                                                                                                      LookUp(colScopeChangeLogs, ActionCode = "ADD_SCOPE" && Field = "Added By", DisplayDetails),
-                                                                                                      "System"
-                                                                                                  ),
-                                                                                              ActionDateDisplay:
-                                                                                                  Coalesce(
-                                                                                                      LookUp(colScopeChangeLogs, ActionCode = "ADD_SCOPE" && Field = "Date Added", DisplayDetails),
-                                                                                                      Text(ThisItem.'Created On', "[$-en-US]mmmm d, yyyy ""at"" h:mm:ss AM/PM")
-                                                                                                  )
-                                                                                          }
+                                                                                      );With(
+                                                                                          {_rec: LookUp(' CPR_tb_Scopes', ' CPR_tb_Scope' = ThisItem.' CPR_tb_Scope')},
+                                                                                          Collect(
+                                                                                              colAddNewLogCard,
+                                                                                              {
+                                                                                                  QuestionTitle: "Scope ID: " & Text(varScopeSerial),
+                                                                                                  SectionLabel: "Add New",
+                                                                                                  TypeOfChangeText: "System or user adds a new scope in AI Scope",
+                                                                                                  DetailsText: "",
+                                                                                                  ActionByDisplay:
+                                                                                                      Coalesce(
+                                                                                                          LookUp(colScopeChangeLogs, ActionCode = "ADD_SCOPE" && Field = "Added By", DisplayDetails),
+                                                                                                          If(
+                                                                                                              IsBlank(_rec.'Created By'.'Full Name'),
+                                                                                                              "System",
+                                                                                                              _rec.'Created By'.'Full Name' & " | " & _rec.'Created By'.'Primary Email'
+                                                                                                          )
+                                                                                                      ),
+                                                                                                  ActionDateDisplay:
+                                                                                                      Coalesce(
+                                                                                                          LookUp(colScopeChangeLogs, ActionCode = "ADD_SCOPE" && Field = "Date Added", DisplayDetails),
+                                                                                                          Text(_rec.'Created On', "[$-en-US]mmmm d, yyyy ""at"" h:mm:ss AM/PM")
+                                                                                                      )
+                                                                                              }
+                                                                                          )
                                                                                       );
                                                                                       ForAll(
                                                                                           Distinct(Filter(colScopeChangeLogs, ActionCode = "EDIT_SCOPE"), LogGroupID) As grp,
@@ -20525,7 +20515,7 @@ Screens:
                                       Trim(Substitute(Substitute(Coalesce(OldVal, ""), Char(13), ""), Char(10), "")) <>
                                       Trim(Substitute(Substitute(Coalesce(NewVal, ""), Char(13), ""), Char(10), ""))
                                   ),
-                                  "Changed " & Label & " from '" & OldVal & "' to '" & NewVal & "'" & Char(10) & Char(10)
+                                  "<b> Changed </b>" & Label & "<b> from </b>'" & OldVal & "'<b> to </b>'" & NewVal & "'" & Char(10) & Char(10)
                               ) &
                               Concat(
                                   Filter(colNewScopeAttachments, !IsBlank(FileName) && !(FileName in colOldScopeAttachments.FileName)),
@@ -20541,7 +20531,7 @@ Screens:
                               varScopeFieldChanges &
                               If(
                                   !IsBlank(Trim(varNewScopeReason)),
-                                  "Reason for Change: " & varNewScopeReason,
+                                  "<b> Reason for Change: </b>" & varNewScopeReason,
                                   ""
                               )
                           );
@@ -22756,7 +22746,7 @@ Screens:
                                               )
                                           ) <> Trim(
                                               Coalesce(
-                                                  Text(varUpdatedRisk.'Scope Area'),
+                                                  Text(varUpdatedRisk.'Scope Area Text'),
                                                   ""
                                               )
                                           ),
